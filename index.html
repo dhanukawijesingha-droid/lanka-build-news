@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lanka Build News</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#e9e6e0;--card:#f6f4f0;--ink:#1d2326;--mute:#5d666b;--line:#cfcac1;--roads:#d9480f;--housing:#1c7ed6;--tenders:#2f9e44;--materials:#b8860b;--policy:#7048e8;--projects:#0c8599;--btn:#1d2326;--btnt:#f6f4f0;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#171b1d;--card:#20262a;--ink:#ece9e3;--mute:#9aa4a9;--line:#323a3f;--btn:#ece9e3;--btnt:#171b1d;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#171b1d;--card:#20262a;--ink:#ece9e3;--mute:#9aa4a9;--line:#323a3f;--btn:#ece9e3;--btnt:#171b1d;color-scheme:dark}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.5 Barlow,system-ui,sans-serif}
+.wrap{max-width:760px;margin:0 auto;padding:20px 16px 48px}
+h1{font:700 40px/1 "Barlow Condensed",Impact,sans-serif;margin:8px 0 4px;letter-spacing:.01em}
+.sub{color:var(--mute);margin:0 0 16px}
+.note{background:var(--card);border:1px dashed var(--mute);padding:10px 12px;font-size:14px;margin-bottom:16px}
+input[type=search]{width:100%;padding:12px;font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:4px}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:12px 0;scrollbar-width:none}
+.chip{flex:none;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:6px 12px;font:500 14px Barlow,sans-serif;border-radius:4px;cursor:pointer}
+.chip[aria-pressed=true]{background:var(--btn);color:var(--btnt);border-color:var(--btn)}
+.item{display:block;background:var(--card);border:1px solid var(--line);border-left:8px solid var(--c,var(--mute));padding:12px 14px;margin-bottom:10px;color:inherit;text-decoration:none;border-radius:2px}
+.item:hover h2{text-decoration:underline}
+.item h2{font:600 22px/1.15 "Barlow Condensed",Impact,sans-serif;margin:0 0 4px}
+.item p{margin:0 0 6px;font-size:15px}
+.meta{font-size:13px;color:var(--mute)}
+.meta b{color:var(--c);font-weight:500}
+.bar{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:20px;font-size:13px;color:var(--mute)}
+.bar button{font:inherit;background:none;border:1px solid var(--line);color:var(--ink);padding:6px 10px;border-radius:4px;cursor:pointer}
+.empty{padding:32px 0;text-align:center;color:var(--mute)}
+:focus-visible{outline:3px solid var(--projects);outline-offset:2px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Lanka Build News</h1>
+  <p class="sub">Construction industry headlines from Sri Lanka, in one place.</p>
+  <div class="note" id="note" hidden>Showing sample headlines. Live news will appear here once the daily update is connected.</div>
+  <input type="search" id="q" placeholder="Search headlines" aria-label="Search headlines">
+  <div class="chips" id="chips"></div>
+  <div id="list"></div>
+  <div class="bar"><span id="stamp"></span><span><button id="load">Load news.json</button> <button id="theme">Theme</button></span></div>
+  <input type="file" id="file" accept=".json,application/json" hidden>
+</div>
+<script>
+var CATS={all:["All",null],roads:["Roads & bridges","--roads"],housing:["Housing","--housing"],tenders:["Tenders","--tenders"],materials:["Materials & prices","--materials"],policy:["Policy & regulation","--policy"],projects:["Projects","--projects"]};
+var KW={roads:/road|highway|bridge|expressway|rda|flyover/i,housing:/housing|apartment|real estate|uda|residential/i,tenders:/tender|bid|procure|contract award/i,materials:/cement|steel|sand|aggregate|price|bitumen|timber/i,policy:/policy|regulation|budget|tax|cida|ncasl|act\b|ministry/i};
+var SAMPLE=[
+{title:"Sample: Highway extension tender opens for bids",summary:"Placeholder headline showing how a roads item looks.",source:"Sample Source",date:"2026-10-17",url:"#"},
+{title:"Sample: Cement prices revised for October",summary:"Placeholder headline showing how a materials item looks.",source:"Sample Source",date:"2026-10-17",url:"#"},
+{title:"Sample: New housing scheme announced for Anuradhapura district",summary:"Placeholder headline showing how a housing item looks.",source:"Sample Source",date:"2026-10-16",url:"#"},
+{title:"Sample: Ministry updates contractor registration rules",summary:"Placeholder headline showing how a policy item looks.",source:"Sample Source",date:"2026-10-16",url:"#"},
+{title:"Sample: Bridge rehabilitation project reaches 60% progress",summary:"Placeholder headline showing how a projects item looks.",source:"Sample Source",date:"2026-10-15",url:"#"}];
+var data=SAMPLE,cat="all",usingSample=true;
+function catOf(i){if(i.category&&CATS[i.category])return i.category;var t=i.title+" "+(i.summary||"");for(var k in KW)if(KW[k].test(t))return k;return "projects"}
+function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function safeUrl(u){return /^https?:\/\//.test(u)?u:"#"}
+function chips(){var h="";for(var k in CATS)h+='<button class="chip" data-k="'+k+'" aria-pressed="'+(k==cat)+'">'+CATS[k][0]+'</button>';document.getElementById("chips").innerHTML=h}
+function render(){
+  var q=document.getElementById("q").value.toLowerCase(),out="";
+  data.slice().sort(function(a,b){return (b.date||"").localeCompare(a.date||"")}).forEach(function(i){
+    var c=catOf(i);if(cat!="all"&&c!=cat)return;
+    if(q&&(i.title+" "+(i.summary||"")).toLowerCase().indexOf(q)<0)return;
+    out+='<a class="item" style="--c:var('+CATS[c][1]+')" href="'+esc(safeUrl(i.url))+'" target="_blank" rel="noopener"><h2>'+esc(i.title)+'</h2>'+(i.summary?'<p>'+esc(i.summary)+'</p>':'')+'<div class="meta"><b>'+CATS[c][0]+'</b>, '+esc(i.source)+', '+esc(i.date)+'</div></a>';
+  });
+  document.getElementById("list").innerHTML=out||'<div class="empty">No headlines match. Try another category or search.</div>';
+  document.getElementById("note").hidden=!usingSample;
+  document.getElementById("stamp").textContent=data.length+" headlines";
+}
+function setData(a){if(Array.isArray(a)&&a.length){data=a;usingSample=false;render()}}
+document.getElementById("chips").addEventListener("click",function(e){var k=e.target.getAttribute("data-k");if(k){cat=k;chips();render()}});
+document.getElementById("q").addEventListener("input",render);
+document.getElementById("load").onclick=function(){document.getElementById("file").click()};
+document.getElementById("file").onchange=function(e){var f=e.target.files[0];if(!f)return;var r=new FileReader();r.onload=function(){try{var j=JSON.parse(r.result);setData(j.items||j)}catch(x){alert("That file is not valid JSON.")}};r.readAsText(f)};
+document.getElementById("theme").onclick=function(){var r=document.documentElement,d=r.getAttribute("data-theme")==="dark"||(!r.getAttribute("data-theme")&&matchMedia("(prefers-color-scheme: dark)").matches);r.setAttribute("data-theme",d?"light":"dark")};
+chips();render();
+fetch("news.json",{cache:"no-store"}).then(function(r){return r.ok?r.json():null}).then(function(j){if(j)setData(j.items||j)}).catch(function(){});
+</script>
+</body>
+</html>
